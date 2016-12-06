@@ -15,6 +15,7 @@
 
 #include "pciedev_io.h"
 #include "pciedev_ufn.h"
+//#include <asm-generic/io.h>
 #include "debug_functions.h"
 
 #define		DEBUG_TIMING
@@ -163,10 +164,10 @@ static inline void Read_Write_Private(u_int16_t a_usnRegSize, u_int16_t a_usnAcc
 		case MTCA_SET_BITS:
 			tmp_data = (u32)(*((const u32*)a_pValueKernel));
 			tmp_data_Mask = (u32)(*((const u32*)a_pMaskW));
-			
+
 			tmp_data &= tmp_data_Mask;				// Keeping fields corresponding to Mask
+
 			tmp_data_Prev = ioread32(a_addressDev);
-			
 			smp_rmb();
 			tmp_data_Mask = ~tmp_data_Mask;			// Inverting Mask
 			tmp_data_Prev &= tmp_data_Mask;			// Keeping fields corresponding to inverted Mask
@@ -236,6 +237,7 @@ static inline ssize_t pciedev_read_inline(struct pciedev_dev* a_dev, u_int16_t a
 
 	unRegisterSize = GetRegisterSizeInBytes(a_register_size,a_dev->register_size);
 	scrachTest = unRegisterSize == 1 ? 0xff : (unRegisterSize == 2 ? 0xffff : 0xffffffff);
+	//maskForScrach = scrachTest;
 
 	if (!a_dev->memmory_base[a_bar] || a_offset%unRegisterSize)
 	{
@@ -252,13 +254,35 @@ static inline ssize_t pciedev_read_inline(struct pciedev_dev* a_dev, u_int16_t a
 	for (i = 0; i < a_count; ++i, pcUserBuf += unRegisterSize, addressDev += unRegisterSize)
 	{
 		Read_Write_Private(a_register_size, a_rw_access_mode, addressDev, &tmp_data_for_rw, /*NULL*/&tmp_data_for_rw, /*NULL*/&tmp_data_for_rw);
-		if (tmp_data_for_rw == scrachTest)
+		if (g_nPrintDebugInfo){ printk(KERN_ALERT "!!!!!!! scrachTest=%x, readed=%x\n", (unsigned)scrachTest,(unsigned)tmp_data_for_rw); }
+		if ((tmp_data_for_rw&scrachTest) == scrachTest)
 		{
+			if (g_nPrintDebugInfo){ printk(KERN_ALERT "!!!!!!! Scrach test started\n"); }
 			scrtch_check = pciedev_check_scratch(a_dev);
 			if (scrtch_check)
 			{
-				ERRCT("ERROR: PCIE error!\n");
+				if (!GET_FLAG_VALUE(a_dev->error_report_status,PCIE_ERROR_BIT))
+				{
+					ERRCT("ERROR: PCIE error!\n");
+					SET_FLAG_VALUE(a_dev->error_report_status, PCIE_ERROR_BIT, 1);
+				}
 				retval = -ENOMEM; break;
+			}
+			else
+			{
+				// Reset PCIe error bit
+				if (GET_FLAG_VALUE(a_dev->error_report_status, PCIE_ERROR_BIT))
+				{
+					SET_FLAG_VALUE(a_dev->error_report_status, PCIE_ERROR_BIT, 0);
+				}
+			}
+		}
+		else
+		{
+			// Reset PCIe error bit
+			if (GET_FLAG_VALUE(a_dev->error_report_status, PCIE_ERROR_BIT))
+			{
+				SET_FLAG_VALUE(a_dev->error_report_status, PCIE_ERROR_BIT, 0);
 			}
 		}
 		if (a_dev->swap) { tmp_data_for_rw = UPCIEDEV_SWAP_TOT(unRegisterSize, tmp_data_for_rw); }
@@ -288,10 +312,11 @@ static inline ssize_t pciedev_read_inline(struct pciedev_dev* a_dev, u_int16_t a
  *   < 0:             error (details on all errors on documentation)
  *   other:           number of Bytes read from device registers
  */
-static inline ssize_t pciedev_write_inline(struct pciedev_dev* a_dev, 
+static inline ssize_t pciedev_write_inline2(void* a_a_dev, 
 	u_int16_t a_register_size, u_int16_t a_rw_access_mode, u_int32_t a_bar, u_int32_t a_offset,
 	const char __user *a_pcUserData0, const char __user *a_pcUserMask0, size_t a_count)
 {
+	struct pciedev_dev* a_dev = (struct pciedev_dev*)a_a_dev;
 	const char __user*	pcUserData = a_pcUserData0;
 	const char __user*	pcUserMask = a_pcUserMask0;
 	ssize_t				retval = 0;
@@ -357,7 +382,7 @@ static inline int pciedev_check_scratch(struct pciedev_dev * a_dev)
 	scrachTest = a_dev->register_size == RW_D8 ? 0xff : (a_dev->register_size == RW_D16 ? 0xffff : 0xffffffff);
 	Read_Write_Private(a_dev->register_size,MTCA_SIMPLE_READ,address,&tmp_data_for_rw,NULL,NULL);
 
-	if (tmp_data_for_rw == scrachTest){ return 1; }
+	if ((tmp_data_for_rw&scrachTest) == scrachTest){ return 1; }
 
 	return 0;
 }

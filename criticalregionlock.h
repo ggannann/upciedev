@@ -73,7 +73,6 @@ extern int UnlockLongCritRegion(struct SCriticalRegionLock* lock);
 #define	InitCritRegionLock(lock,timeout) mutex_init((lock))
 #define	DestroyCritRegionLock(lock) do{}while(0)
 #define	EnterCritRegion(lock) mutex_lock_interruptible((lock))
-//#define	EnterCritRegion(lock) mutex_lock((lock))
 static inline int LeaveCritRegion(struct SCriticalRegionLock* lock){mutex_unlock((lock));return 0;}
 static inline int LongLockOfCriticalRegion(struct SCriticalRegionLock* lock){return _NOT_IMPLEMENTED_;}
 static inline int UnlockLongCritRegion(struct SCriticalRegionLock* lock){return _NOT_IMPLEMENTED_;}

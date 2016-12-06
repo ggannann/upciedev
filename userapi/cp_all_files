@@ -1,0 +1,23 @@
+#!/bin/sh
+
+#This script starts pitzlsradc program.
+USUAL_SRC_DIR0=/afs/ifh.de/group/pitz/doocs/develop/kalantar/programs/cpp/works/mtca/sources/
+TARGET_SRC_DIR=/afs/ifh.de/group/pitz/doocs/develop/kalantar/programs/cpp/works/drivers/projects/upciedev/upciedev_usual_mkfl/userapi
+
+
+case $1 in
+	delete)
+		#rm $TARGET_SRC_DIR/upciedev_test_main.cpp
+		#rm $TARGET_SRC_DIR/debug_functions.h
+		rm $TARGET_SRC_DIR/*.cpp
+		rm $TARGET_SRC_DIR/mtca_base.h
+		rm $TARGET_SRC_DIR/upciedev_local.h
+		;;
+	*)
+		cp $USUAL_SRC_DIR0/upciedev_test_main.cpp $TARGET_SRC_DIR/.
+		cp $USUAL_SRC_DIR0/upciedev_local.cpp $TARGET_SRC_DIR/.
+		cp $USUAL_SRC_DIR0/upciedev_local.h $TARGET_SRC_DIR/.
+		cp $USUAL_SRC_DIR0/mtca_base.h $TARGET_SRC_DIR/.
+		#cp $USUAL_SRC_DIR0/criticalregionlock.h $TARGET_SRC_DIR/.
+		;;
+esac

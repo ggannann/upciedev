@@ -17,6 +17,13 @@
  *
  */
 #include "criticalregionlock.h"
+#include <linux/module.h>
+#include <linux/fs.h>	
+#include <asm/uaccess.h>
+
+#include "pciedev_ufn.h"
+#include "read_write_inline.h"
+#include "debug_functions.h"
 
 #ifdef USE_SEMAPHORE
 
@@ -239,4 +246,3 @@ int KillPidWithInfo(pid_t a_unPID, int a_nSignal, struct siginfo* a_pInfo)
 	return -1;
 }
 EXPORT_SYMBOL(KillPidWithInfo);
-
